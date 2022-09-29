@@ -24,5 +24,4 @@ public class FlightController {
         flightService.addFlight(flightAddRequest);
     }
 
-    @GetMapping
 }
