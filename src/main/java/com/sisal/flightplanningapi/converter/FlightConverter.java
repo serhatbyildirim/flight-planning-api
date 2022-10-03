@@ -12,10 +12,11 @@ public class FlightConverter implements Function<FlightAddRequest, Flight> {
     @Override
     public Flight apply(FlightAddRequest flightAddRequest) {
         return Flight.builder()
-                    .airlineCode(flightAddRequest.getAirlineCode())
-                    .sourceAirportCode(flightAddRequest.getSourceAirportCode())
-                    .destinationAirportCode(flightAddRequest.getDestinationAirportCode())
-                    .durationMinute(flightAddRequest.getDurationMinute())
+                .airlineCode(flightAddRequest.getAirlineCode())
+                .sourceAirportCode(flightAddRequest.getSourceAirportCode())
+                .destinationAirportCode(flightAddRequest.getDestinationAirportCode())
+                .durationMinute(flightAddRequest.getDurationMinute())
+                .flightDate(flightAddRequest.getFlightDate())
                 .build();
     }
 }

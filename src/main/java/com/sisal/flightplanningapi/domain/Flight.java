@@ -10,6 +10,7 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import java.util.Date;
 
 @Entity
 @Getter
@@ -26,4 +27,5 @@ public class Flight {
     private String sourceAirportCode;
     private String destinationAirportCode;
     private Integer durationMinute;
+    private Date flightDate;
 }
