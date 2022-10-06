@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.validation.Valid;
 import java.util.List;
 
 @RestController
@@ -24,7 +25,7 @@ public class FlightController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public void addFlight(@RequestBody FlightAddRequest flightAddRequest) {
+    public void addFlight(@RequestBody @Valid FlightAddRequest flightAddRequest) {
         flightService.addFlight(flightAddRequest);
     }
 

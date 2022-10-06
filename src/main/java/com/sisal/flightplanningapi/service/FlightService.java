@@ -2,6 +2,8 @@ package com.sisal.flightplanningapi.service;
 
 import com.sisal.flightplanningapi.converter.FlightConverter;
 import com.sisal.flightplanningapi.domain.Flight;
+import com.sisal.flightplanningapi.exception.ConflictedFlightException;
+import com.sisal.flightplanningapi.exception.MaxFlightCountReachedException;
 import com.sisal.flightplanningapi.model.request.FlightAddRequest;
 import com.sisal.flightplanningapi.repository.FlightRepository;
 import lombok.RequiredArgsConstructor;
@@ -21,37 +23,38 @@ public class FlightService {
     private final FlightConverter flightConverter;
     private final FlightRepository flightRepository;
 
-    public void addFlight(FlightAddRequest flightAddRequest) {
+    public synchronized void addFlight(FlightAddRequest request) {
 
-        List<Flight> sameRouteFlightList = flightRepository.findBySourceAirportCodeAndDestinationAirportCode(flightAddRequest.getSourceAirportCode(), flightAddRequest.getDestinationAirportCode());
+        List<Flight> sameRouteFlightList = flightRepository.findBySourceAirportCodeAndDestinationAirportCode(request.getSourceAirportCode(), request.getDestinationAirportCode());
 
-        if (sameRouteFlightList.size() > MAX_FLIGHT_COUNT) {
-            log.error("Max flight count has reached");
-            return;
+        if (sameRouteFlightList.size() >= MAX_FLIGHT_COUNT) {
+            throw new MaxFlightCountReachedException(request.getSourceAirportCode(), request.getDestinationAirportCode());
         }
 
-        Date requestedFlightDate = flightAddRequest.getFlightDate();
-        DateTime endRequestedFlightTime = new DateTime(requestedFlightDate).plusMinutes(flightAddRequest.getDurationMinute());
+        Date requestedFlightDate = request.getFlightDate();
+        DateTime endRequestedFlightTime = new DateTime(requestedFlightDate).plusMinutes(request.getDurationMinute());
 
         List<Flight> allFlights = flightRepository.findAll();
 
         boolean hasConflictedWithOngoingFlights = allFlights.stream()
-                .noneMatch(f -> {
+                .anyMatch(f -> {
                     DateTime flightDateTime = new DateTime(f.getFlightDate());
-                    return flightDateTime.isBefore(requestedFlightDate.getTime()) && flightDateTime.plusMinutes(f.getDurationMinute()).isBefore(requestedFlightDate.getTime());
+                    return flightDateTime.isBefore(requestedFlightDate.getTime()) &&
+                            flightDateTime.plusMinutes(f.getDurationMinute()).isAfter(requestedFlightDate.getTime());
                 });
 
         boolean hasConflictedWithNotStartedFlights = allFlights.stream()
-                .noneMatch(f -> {
+                .anyMatch(f -> {
                     DateTime flightDateTime = new DateTime(f.getFlightDate());
-                    return flightDateTime.isAfter(requestedFlightDate.getTime()) && flightDateTime.isAfter(endRequestedFlightTime);
+                    return flightDateTime.isAfter(requestedFlightDate.getTime()) &&
+                            flightDateTime.isBefore(endRequestedFlightTime);
                 });
 
         if (hasConflictedWithOngoingFlights || hasConflictedWithNotStartedFlights) {
-            return;
+            throw new ConflictedFlightException();
         }
 
-        Flight flight = flightConverter.apply(flightAddRequest);
+        Flight flight = flightConverter.apply(request);
         flightRepository.save(flight);
     }
 

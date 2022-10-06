@@ -2,8 +2,11 @@ package com.sisal.flightplanningapi.service;
 
 import com.sisal.flightplanningapi.converter.FlightConverter;
 import com.sisal.flightplanningapi.domain.Flight;
+import com.sisal.flightplanningapi.exception.ConflictedFlightException;
+import com.sisal.flightplanningapi.exception.MaxFlightCountReachedException;
 import com.sisal.flightplanningapi.model.request.FlightAddRequest;
 import com.sisal.flightplanningapi.repository.FlightRepository;
+import org.assertj.core.api.AssertionsForClassTypes;
 import org.joda.time.DateTime;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -12,6 +15,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static java.util.Arrays.asList;
+import static org.assertj.core.api.AssertionsForClassTypes.catchThrowable;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -41,7 +45,7 @@ public class FlightServiceTest {
         flightAddRequest.setDestinationAirportCode("as");
 
         Flight flight1 = new Flight();
-        DateTime dateTime1 = new DateTime(2022, 9, 3, 19, 00);
+        DateTime dateTime1 = new DateTime(2022, 9, 3, 19, 0);
         flight1.setFlightDate(dateTime1.toDate());
         flight1.setDurationMinute(30);
 
@@ -90,9 +94,10 @@ public class FlightServiceTest {
         given(repository.findBySourceAirportCodeAndDestinationAirportCode("sa", "as")).willReturn(asList(flight1, flight2, flight3, flight4));
 
         // when
-        service.addFlight(flightAddRequest);
+        MaxFlightCountReachedException exception = (MaxFlightCountReachedException) catchThrowable(() -> service.addFlight(flightAddRequest));
 
         // then
+        AssertionsForClassTypes.assertThat(exception.getMessage()).isEqualTo("Max Flight Count Reached with source : sa and destination as");
         verify(repository).findBySourceAirportCodeAndDestinationAirportCode("sa", "as");
         verifyNoInteractions(converter);
         verifyNoMoreInteractions(repository);
@@ -128,9 +133,10 @@ public class FlightServiceTest {
         given(repository.findAll()).willReturn(asList(flight1, flight2, flight3));
 
         // when
-        service.addFlight(flightAddRequest);
+        ConflictedFlightException exception = (ConflictedFlightException) catchThrowable(() -> service.addFlight(flightAddRequest));
 
         // then
+        AssertionsForClassTypes.assertThat(exception.getMessage()).isEqualTo("Conflicted Flight occurred");
         verify(repository).findBySourceAirportCodeAndDestinationAirportCode("sa", "as");
         verify(repository).findAll();
         verifyNoInteractions(converter);
@@ -167,9 +173,10 @@ public class FlightServiceTest {
         given(repository.findAll()).willReturn(asList(flight1, flight2, flight3));
 
         // when
-        service.addFlight(flightAddRequest);
+        ConflictedFlightException exception = (ConflictedFlightException) catchThrowable(() -> service.addFlight(flightAddRequest));
 
         // then
+        AssertionsForClassTypes.assertThat(exception.getMessage()).isEqualTo("Conflicted Flight occurred");
         verify(repository).findBySourceAirportCodeAndDestinationAirportCode("sa", "as");
         verify(repository).findAll();
         verifyNoInteractions(converter);
